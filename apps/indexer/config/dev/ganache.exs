@@ -6,7 +6,7 @@ config :indexer,
     transport: EthereumJSONRPC.HTTP,
     transport_options: [
       http: EthereumJSONRPC.HTTP.HTTPoison,
-      url: System.get_env("ETHEREUM_JSONRPC_HTTP_URL") || "http://localhost:8545",
+      url: System.get_env("ETHEREUM_JSONRPC_HTTP_URL") || "http://localhost:2000",
       http_options: [recv_timeout: 60_000, timeout: 60_000, hackney: [pool: :ethereum_jsonrpc]]
     ],
     variant: EthereumJSONRPC.Geth
@@ -14,7 +14,7 @@ config :indexer,
   subscribe_named_arguments: [
     transport: EthereumJSONRPC.WebSocket,
     transport_options: [
-      web_socket: EthereumJSONRPC.WebSocket.WebSocketClient,
-      url: System.get_env("ETHEREUM_JSONRPC_WEB_SOCKET_URL") || "ws://localhost:8545"
+      web_socket: EthereumJSONRPC.WebSocket.WebSocketClientGanache,
+      url: System.get_env("ETHEREUM_JSONRPC_WEB_SOCKET_URL") || "ws://localhost:2000"
     ]
   ]

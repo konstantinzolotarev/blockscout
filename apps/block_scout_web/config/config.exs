@@ -11,10 +11,10 @@ config :block_scout_web,
   ecto_repos: [Explorer.Repo]
 
 config :block_scout_web, BlockScoutWeb.Chain,
-  network: System.get_env("NETWORK"),
+  network: System.get_env("NETWORK") || "kovan",
   subnetwork: System.get_env("SUBNETWORK"),
   network_icon: System.get_env("NETWORK_ICON"),
-  logo: System.get_env("LOGO")
+  logo: System.get_env("LOGO") || "/images/kovan_logo.svg"
 
 # Configures the endpoint
 config :block_scout_web, BlockScoutWeb.Endpoint,
