@@ -15,7 +15,9 @@ endif
 DB_URL = postgresql://postgres:@$(HOST):5432/explorer?ssl=false
 BLOCKSCOUT_CONTAINER_PARAMS = -e 'MIX_ENV=prod' \
 							   -e 'DATABASE_URL=$(DB_URL)' \
-							   -e 'PORT=4000'
+							   -e 'PORT=4000' \
+							   -e ECTO_USE_SSL=false
+
 ifeq ($(SYSTEM), Linux)
 	BLOCKSCOUT_CONTAINER_PARAMS += --network=host
 endif
@@ -52,9 +54,9 @@ endif
 
 HAS_BLOCKSCOUT_IMAGE := $(shell docker images | grep ${DOCKER_IMAGE}:$(APP_VSN)-$(BUILD))
 build: postgres
-	@echo "==> Checking for blockscout image $(DOCKER_IMAGE)"
+	@echo "==> Checking for blockscout image $(DOCKER_IMAGE):$(APP_VSN)-$(BUILD)"
 ifdef HAS_BLOCKSCOUT_IMAGE
-	@echo "==> Image exist. Using $(DOCKER_IMAGE)"
+	@echo "==> Image exist. Using $(DOCKER_IMAGE):$(APP_VSN)-$(BUILD)"
 else
 	@echo "==> No image found trying to build one..."
 	@docker build \
@@ -99,21 +101,19 @@ start: build
 	@echo "==> Starting blockscout"
 	@echo $(BLOCKSCOUT_CONTAINER_PARAMS)
 	@docker run --rm -it \
-					-e ECTO_USE_SSL=false \
-					$(BLOCKSCOUT_CONTAINER_PARAMS) \
-					-p 4000:4000 \
-					$(DOCKER_IMAGE):$(APP_VSN)-$(BUILD)
+				$(BLOCKSCOUT_CONTAINER_PARAMS) \
+				-p 4000:4000 \
+				$(DOCKER_IMAGE):$(APP_VSN)-$(BUILD)
 
 run: start
 
 run-debug: build
-	@echo "==> Starting blockscout"
+	@echo "==> Starting blockscout for debugging"
 	@echo $(BLOCKSCOUT_CONTAINER_PARAMS)
 	@docker run --rm -it \
-					-e ECTO_USE_SSL=false \
-					$(BLOCKSCOUT_CONTAINER_PARAMS) \
-					-p 4000:4000 \
-					$(DOCKER_IMAGE):$(APP_VSN)-$(BUILD) /bin/bash
+				$(BLOCKSCOUT_CONTAINER_PARAMS) \
+				-p 4000:4000 \
+				$(DOCKER_IMAGE):$(APP_VSN)-$(BUILD) /bin/bash
 
 .PHONY: build \
 		migrate \
