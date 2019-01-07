@@ -81,5 +81,15 @@ release :blockscout do
     migrate: "rel/commands/migrate.sh",
     seed: "rel/commands/seed.sh",
   ]
+
+  set config_providers: [
+    {Mix.Releases.Config.Providers.Elixir, ["${RELEASE_ROOT_DIR}/etc/config.exs"]}
+  ]
+  set overlays: [
+    {:copy, "rel/config/config.exs", "etc/config.exs"},
+    {:copy, "rel/config/impl/ganache.exs", "etc/impl/ganache.exs"},
+    {:copy, "rel/config/impl/geth.exs", "etc/impl/geth.exs"},
+    {:copy, "rel/config/impl/parity.exs", "etc/impl/parity.exs"}
+  ]
 end
 

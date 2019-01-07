@@ -39,3 +39,5 @@ screenshots/
 
 # osx 
 .DS_Store
+
+.erlang_cookie

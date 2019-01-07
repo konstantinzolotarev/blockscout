@@ -1,12 +1,49 @@
-FROM bitwalker/alpine-elixir-phoenix:latest
+# The version of Alpine to use for the final image
+ARG ALPINE_VERSION=3.8
 
-RUN apk --no-cache --update add automake libtool inotify-tools autoconf
+FROM elixir:1.7.2-alpine AS builder
 
-EXPOSE 4000
+# The following are build arguments used to change variable parts of the image.
+# The name of your application/release (required)
+ARG APP_NAME=blockscout
+# The version of the application we are building (required)
+ARG APP_VSN=0.1.0
+# The environment to build with
+ARG MIX_ENV=prod
+# Set this to true if this release is not a Phoenix app
+ARG SKIP_PHOENIX=false
 
-ENV PORT=4000 \
-    MIX_ENV="prod" \
-    SECRET_KEY_BASE="RMgI4C1HSkxsEjdhtGMfwAHfyT6CKWXOgzCboJflfSm4jeAlic52io05KB6mqzc5"
+ARG DATABASE_URL=false
+
+ENV SKIP_PHOENIX=${SKIP_PHOENIX} \
+    APP_NAME=${APP_NAME} \
+    APP_VSN=${APP_VSN} \
+    MIX_ENV=${MIX_ENV} \
+    DATABASE_URL=${DATABASE_URL} \
+    PORT=4000 \
+    SECRET_KEY_BASE="RMgI4C1HSkxsEjdhtGMfwAHfyT6CKWXOgzCboJflfSm4jeAlic52io05KB6mqzc5" \
+    ECTO_USE_SSL=false
+
+# By convention, /opt is typically used for applications
+WORKDIR /opt/app
+
+# This step installs all the build tools we'll need
+RUN apk update && \
+  apk upgrade --no-cache && \
+  apk add --no-cache \
+    nodejs-current \
+    npm \
+    git \
+    bash \
+    build-base \
+    automake \
+    libtool \
+    inotify-tools \
+    autoconf \
+    gmp-dev \
+    python2 && \
+  mix local.rebar --force && \
+  mix local.hex --force
 
 # Cache elixir deps
 ADD mix.exs mix.lock ./
@@ -17,23 +54,58 @@ ADD apps/indexer/mix.exs ./apps/indexer/
 
 RUN mix do deps.get, deps.compile
 
-ADD . .
+# This copies our app source code into the build container
+COPY . .
 
-# Run forderground build and phoenix digest
 RUN mix compile
 
-# Add blockscout npm deps
-RUN cd apps/block_scout_web/assets/ && \
-    npm install && \
-    npm run deploy && \
-    cd -
+# This step builds assets for the Phoenix app (if there is one)
+# If you aren't building a Phoenix app, pass `--build-arg SKIP_PHOENIX=true`
+# This is mostly here for demonstration purposes
+RUN if [ ! "$SKIP_PHOENIX" = "true" ]; then \
+  cd apps/block_scout_web/assets && \
+  npm install && \
+  npm run deploy && \
+  cd - && \
+  # installing modules for explorer
+  cd apps/explorer && \
+  npm install && \
+  cd - && \
+  mix phx.digest; \
+fi
 
-RUN cd apps/explorer/ && \
-    npm install && \
-    cd -
+RUN \
+  mkdir -p /opt/built && \
+  mix release --verbose && \
+  cp _build/${MIX_ENV}/rel/${APP_NAME}/releases/${APP_VSN}/${APP_NAME}.tar.gz /opt/built && \
+  cd /opt/built && \
+  tar -xzf ${APP_NAME}.tar.gz && \
+  rm ${APP_NAME}.tar.gz
 
-# RUN mix do ecto.drop --force, ecto.create, ecto.migrate
+# From this line onwards, we're in a new image, which will be the image used in production
+FROM alpine:${ALPINE_VERSION}
 
-# USER default
+# The name of your application/release (required)
+ARG APP_NAME=blockscout
 
-# CMD ["mix", "phx.server"]
+EXPOSE 4000
+
+RUN apk update && \
+    apk add --no-cache \
+      bash \
+      openssl \
+      automake \
+      libtool \ 
+      autoconf \
+      gmp \
+      gcc
+
+ENV REPLACE_OS_VARS=true \
+    APP_NAME=${APP_NAME} \
+    SECRET_KEY_BASE="RMgI4C1HSkxsEjdhtGMfwAHfyT6CKWXOgzCboJflfSm4jeAlic52io05KB6mqzc5"
+
+WORKDIR /opt/app
+
+COPY --from=builder /opt/built .
+
+CMD trap 'exit' INT; /opt/app/bin/${APP_NAME} console
