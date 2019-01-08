@@ -3,19 +3,19 @@
 For now this integration is not production ready. It made only for local usage only !
 
 ## How to use ?
-First of all blockscout requires `PostgreSQL` server for working. 
+First of all blockscout requires `PostgreSQL` server for working.
 It will be provided by starting script (new docker image will be created named `postgres`)
 
 **Starting command**
 `make start` - will set everything up and start blockscout in container.
 To connect it to your local environment you will have to configure it using [env variables](#env-variables)
 
-Exmaple connecting to local `ganache` instance running on port `2000` on Mac/Windows:
+Exmaple connecting to local `ganache` instance running on port `7545` on Mac/Windows:
 ```bash
 COIN=DAI \
-ETHEREUM_JSONRPC_VARIANT=ganache \ 
-ETHEREUM_JSONRPC_HTTP_URL=http://host.docker.internal:2000 \
-ETHEREUM_JSONRPC_WEB_SOCKET_URL=ws://host.docker.internal:2000 \
+ETHEREUM_JSONRPC_VARIANT=ganache \
+ETHEREUM_JSONRPC_HTTP_URL=http://host.docker.internal:7545 \
+ETHEREUM_JSONRPC_WS_URL=ws://host.docker.internal:7545 \
 make start
 ```
 
@@ -37,7 +37,7 @@ But you could run migrations manualy using `make migrate` command.
 BlockScout support 3 different JSON RPC Variants.
 Vriant could be configured using `ETHEREUM_JSONRPC_VARIANT` environment variable.
 
-Example: 
+Example:
 ```bash
 ETHEREUM_JSONRPC_VARIANT=ganache make start
 ```
