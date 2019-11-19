@@ -63,6 +63,11 @@ migrate: build postgres
 					$(BLOCKSCOUT_CONTAINNER_PARAMS) \
 					$(DOCKER_IMAGE) /bin/sh -c "echo $$MIX_ENV && mix do ecto.drop --force, ecto.create, ecto.migrate"
 
+soft-migrate: build postgres
+	@echo "==> Running migrations"
+	@docker run --rm \
+					$(BLOCKSCOUT_CONTAINNER_PARAMS) \
+					$(DOCKER_IMAGE) /bin/sh -c "echo $$MIX_ENV && mix do ecto.migrate"
 
 PG_EXIST := $(shell docker ps -a --filter name=${PG_CONTAINER_NAME} | grep ${PG_CONTAINER_NAME})
 PG_STARTED := $(shell docker ps --filter name=${PG_CONTAINER_NAME} | grep ${PG_CONTAINER_NAME})
@@ -86,7 +91,7 @@ else
 	@$(MAKE) -f $(THIS_FILE) migrate
 endif
 
-start: build postgres 
+start: build postgres soft-migrate
 	@echo "==> Starting blockscout"
 	@docker run --rm --name $(BS_CONTAINER_NAME) \
 					$(BLOCKSCOUT_CONTAINNER_PARAMS) \
@@ -97,6 +102,7 @@ run: start
 
 .PHONY: build \
 				migrate \
+				soft-migrate \
 				start \
 				postgres \
 				run 
